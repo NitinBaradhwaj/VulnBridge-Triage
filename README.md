@@ -87,6 +87,14 @@ cd triage-agent
 python agent.py
 ```
 
+## Security Dashboard
+
+`security-dashboard/` is a separate React app — the demo surface. It reads
+the same GitHub Issues the agent creates and renders them as sorted,
+color-coded cards. See `security-dashboard/README.md` for run and Vercel
+deploy instructions. It has no dependency on Ollama or the Python agent —
+just the public GitHub API — so it's safe to deploy on its own.
+
 ## What's custom here vs. off-the-shelf
 
 - `.semgrep/vulnbank-rules.yml` — hand-written rules for VulnBank's specific

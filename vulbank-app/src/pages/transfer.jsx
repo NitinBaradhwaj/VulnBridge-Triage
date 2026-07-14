@@ -37,46 +37,50 @@ export default function Transfer({ user }) {
 
   return (
     <div style={{ maxWidth: "440px" }}>
-      <div style={{ background: "#fff", border: "1px solid #fca5a5", borderRadius: "12px", padding: "1.5rem", marginBottom: "1rem" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" }}>
-          <h2 style={{ fontSize: "15px", fontWeight: 600, margin: 0 }}>Send money</h2>
-          <div style={{ display: "flex", gap: "6px" }}>
-            <span style={{ background: "#fef2f2", color: "#dc2626", fontSize: "11px", padding: "2px 8px", borderRadius: "4px" }}>VULN-008: No CSRF</span>
-            <span style={{ background: "#fef2f2", color: "#dc2626", fontSize: "11px", padding: "2px 8px", borderRadius: "4px" }}>VULN-010: API key</span>
-          </div>
+      <h1 className="page-title">Send money</h1>
+
+      <div className="panel panel-flagged">
+        <h2 className="panel-title">
+          Transfer details
+          <span style={{ display: "flex", gap: "6px" }}>
+            <span className="badge">VULN-008: No CSRF</span>
+            <span className="badge">VULN-010: API key</span>
+          </span>
+        </h2>
+
+        <div className="field-group">
+          <label className="field-label">Recipient</label>
+          <input className="field-input" value={to} onChange={e => setTo(e.target.value)} placeholder="bob" />
         </div>
 
-        <label style={{ fontSize: "13px", color: "#666", display: "block", marginBottom: "4px" }}>Recipient</label>
-        <input value={to} onChange={e => setTo(e.target.value)} placeholder="bob"
-          style={{ width: "100%", padding: "8px 10px", border: "1px solid #ddd", borderRadius: "8px", boxSizing: "border-box", fontSize: "14px", marginBottom: "1rem" }} />
+        <div className="field-group">
+          <label className="field-label">Amount ($)</label>
+          <input className="field-input" value={amount} onChange={e => setAmount(e.target.value)} placeholder="100" type="number" />
+        </div>
 
-        <label style={{ fontSize: "13px", color: "#666", display: "block", marginBottom: "4px" }}>Amount ($)</label>
-        <input value={amount} onChange={e => setAmount(e.target.value)} placeholder="100" type="number"
-          style={{ width: "100%", padding: "8px 10px", border: "1px solid #ddd", borderRadius: "8px", boxSizing: "border-box", fontSize: "14px", marginBottom: "1rem" }} />
-
-        <label style={{ fontSize: "13px", color: "#666", display: "block", marginBottom: "4px" }}>Memo</label>
-        <input value={memo} onChange={e => setMemo(e.target.value)} placeholder="Rent"
-          style={{ width: "100%", padding: "8px 10px", border: "1px solid #ddd", borderRadius: "8px", boxSizing: "border-box", fontSize: "14px", marginBottom: "1rem" }} />
+        <div className="field-group">
+          <label className="field-label">Memo</label>
+          <input className="field-input" value={memo} onChange={e => setMemo(e.target.value)} placeholder="Rent" />
+        </div>
 
         {status && (
-          <div style={{ background: status.type === "error" ? "#fef2f2" : "#f0fdf4", color: status.type === "error" ? "#dc2626" : "#16a34a", borderRadius: "8px", padding: "8px 12px", fontSize: "13px", marginBottom: "1rem" }}>
+          <div className={`alert ${status.type === "error" ? "alert-error" : "alert-success"}`}>
             {status.msg}
           </div>
         )}
 
-        <button onClick={handleTransfer}
-          style={{ width: "100%", padding: "10px", background: "#2563eb", color: "#fff", border: "none", borderRadius: "8px", fontSize: "14px", fontWeight: 600, cursor: "pointer" }}>
+        <button onClick={handleTransfer} className="btn btn-primary">
           Send transfer
         </button>
       </div>
 
       {history.length > 0 && (
-        <div style={{ background: "#fff", border: "1px solid #e5e5e5", borderRadius: "12px", padding: "1.25rem" }}>
-          <h2 style={{ fontSize: "15px", fontWeight: 600, marginBottom: "1rem" }}>History</h2>
+        <div className="panel">
+          <h2 className="panel-title">History</h2>
           {history.map((tx, i) => (
-            <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #f0f0f0", fontSize: "13px" }}>
-              <span>→ {tx.to} <span style={{ color: "#999" }}>({tx.memo})</span></span>
-              <span style={{ color: "#dc2626" }}>${tx.amount}</span>
+            <div key={i} className="tx-row">
+              <span>→ {tx.to} <span className="tx-date">({tx.memo})</span></span>
+              <span style={{ color: "var(--danger)", fontWeight: 600, fontSize: "13px" }}>${tx.amount}</span>
             </div>
           ))}
         </div>

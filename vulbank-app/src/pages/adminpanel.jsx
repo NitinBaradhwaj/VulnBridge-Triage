@@ -14,76 +14,83 @@ export default function AdminPanel({ user }) {
     { id: 3, username: "bob",   email: "bob@example.com",    balance: 3200,  ssn: "456-78-9012" },
   ];
 
-  const badge = (text) => (
-    <span style={{ background: "#fef2f2", color: "#dc2626", fontSize: "11px", padding: "2px 8px", borderRadius: "4px" }}>
-      {text}
-    </span>
-  );
-
   return (
     <div>
+      <h1 className="page-title">Admin panel</h1>
+
       {!isAdmin && (
-        <div style={{ background: "#fffbeb", color: "#92400e", border: "1px solid #fcd34d", borderRadius: "8px", padding: "10px 14px", fontSize: "13px", marginBottom: "1.5rem" }}>
+        <div className="alert alert-warning">
           ⚠️ You are not an admin — but this panel is fully accessible. VULN-013: Broken Access Control.
         </div>
       )}
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
         {/* VULN-015: SQL Injection */}
-        <div style={{ background: "#fff", border: "1px solid #fca5a5", borderRadius: "12px", padding: "1.25rem" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-            <h2 style={{ fontSize: "14px", fontWeight: 600, margin: 0 }}>User lookup</h2>
-            {badge("VULN-015: SQLi")}
-          </div>
-          <input value={sqlInput} onChange={e => setSqlInput(e.target.value)}
+        <div className="panel panel-flagged">
+          <h2 className="panel-title">
+            User lookup
+            <span className="badge">VULN-015: SQLi</span>
+          </h2>
+          <input
+            className="field-input"
+            value={sqlInput}
+            onChange={e => setSqlInput(e.target.value)}
             placeholder="alice' OR '1'='1"
-            style={{ width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "8px", boxSizing: "border-box", marginBottom: "8px", fontSize: "13px" }} />
+            style={{ marginBottom: "8px" }}
+          />
           <button
             onClick={() => setResult(`SELECT * FROM users WHERE username = '${sqlInput}'`)}
-            style={{ padding: "6px 14px", background: "#2563eb", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontSize: "13px" }}>
+            className="btn btn-secondary"
+          >
             Run query
           </button>
         </div>
 
         {/* VULN-014: IDOR */}
-        <div style={{ background: "#fff", border: "1px solid #fca5a5", borderRadius: "12px", padding: "1.25rem" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-            <h2 style={{ fontSize: "14px", fontWeight: 600, margin: 0 }}>User by ID</h2>
-            {badge("VULN-014: IDOR")}
-          </div>
-          <input value={userId} onChange={e => setUserId(e.target.value)} type="number"
+        <div className="panel panel-flagged">
+          <h2 className="panel-title">
+            User by ID
+            <span className="badge">VULN-014: IDOR</span>
+          </h2>
+          <input
+            className="field-input"
+            value={userId}
+            onChange={e => setUserId(e.target.value)}
+            type="number"
             placeholder="1, 2, or 3"
-            style={{ width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "8px", boxSizing: "border-box", marginBottom: "8px", fontSize: "13px" }} />
+            style={{ marginBottom: "8px" }}
+          />
           <button
             onClick={() => {
               const found = users.find(u => u.id === parseInt(userId));
               setResult(found ? JSON.stringify(found, null, 2) : "User not found");
             }}
-            style={{ padding: "6px 14px", background: "#2563eb", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontSize: "13px" }}>
+            className="btn btn-secondary"
+          >
             Fetch user
           </button>
         </div>
       </div>
 
       {result && (
-        <div style={{ background: "#fff", border: "1px solid #e5e5e5", borderRadius: "12px", padding: "1.25rem", marginBottom: "1rem" }}>
-          <h2 style={{ fontSize: "14px", fontWeight: 600, marginBottom: "8px" }}>Result</h2>
-          <pre style={{ background: "#f9fafb", borderRadius: "8px", padding: "10px", fontSize: "12px", overflowX: "auto", margin: 0 }}>{result}</pre>
+        <div className="panel">
+          <h2 className="panel-title">Result</h2>
+          <pre className="result-box">{result}</pre>
         </div>
       )}
 
       {/* VULN-016: PII exposed */}
-      <div style={{ background: "#fff", border: "1px solid #fca5a5", borderRadius: "12px", padding: "1.25rem" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-          <h2 style={{ fontSize: "14px", fontWeight: 600, margin: 0 }}>All users</h2>
-          {badge("VULN-016: PII exposed")}
-        </div>
+      <div className="panel panel-flagged">
+        <h2 className="panel-title">
+          All users
+          <span className="badge">VULN-016: PII exposed</span>
+        </h2>
         {users.map(u => (
-          <div key={u.id} style={{ display: "flex", gap: "12px", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #f0f0f0", fontSize: "12px" }}>
-            <span style={{ color: "#999" }}>#{u.id}</span>
+          <div key={u.id} className="user-row">
+            <span style={{ color: "var(--text-muted)" }}>#{u.id}</span>
             <span>{u.username}</span>
             <span>{u.email}</span>
-            <span style={{ color: "#dc2626" }}>SSN: {u.ssn}</span>
+            <span style={{ color: "var(--danger)" }}>SSN: {u.ssn}</span>
             <span>${u.balance.toLocaleString()}</span>
           </div>
         ))}
