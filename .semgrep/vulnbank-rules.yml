@@ -1,0 +1,126 @@
+rules:
+  # VULN-001 — session token in localStorage (insecure client-side storage)
+  - id: vulnbank-insecure-token-storage
+    languages: [js, ts]
+    severity: WARNING
+    message: >-
+      Auth token/session data written to localStorage. localStorage is
+      readable by any script on the page, so a single XSS bug anywhere in
+      the app is enough to steal this token. Prefer an httpOnly, Secure
+      cookie set by the server instead.
+    metadata:
+      category: security
+      owasp: A07:2021 - Identification and Authentication Failures
+      cwe: "CWE-922: Insecure Storage of Sensitive Information"
+    pattern-either:
+      - pattern: localStorage.setItem("$KEY", ...)
+    metavariable-regex:
+      metavariable: $KEY
+      regex: (?i)(token|auth|session|secret|password)
+
+  # VULN-002 / VULN-010 — hardcoded credentials, API keys, tokens
+  - id: vulnbank-hardcoded-secret
+    languages: [js, ts]
+    severity: ERROR
+    message: >-
+      Hardcoded credential, API key, or token found in source code. Anything
+      shipped to the browser is public — move this to a server-side secret
+      and load it from an environment variable instead.
+    metadata:
+      category: security
+      owasp: A07:2021 - Identification and Authentication Failures
+      cwe: "CWE-798: Use of Hard-coded Credentials"
+    pattern-regex: '(?i)(api[_-]?key|secret|password|token)["\x27]?\s*[:=]\s*["\x27][A-Za-z0-9_\-]{6,}["\x27]'
+    paths:
+      exclude:
+        - "*.test.*"
+
+  # VULN-006 — XSS via dangerouslySetInnerHTML
+  - id: vulnbank-react-xss-dangerously-set-inner-html
+    languages: [js, ts]
+    severity: ERROR
+    message: >-
+      User-controlled value passed to dangerouslySetInnerHTML without
+      sanitization. This allows an attacker to inject arbitrary HTML/JS
+      (stored or reflected XSS). Sanitize with a library like DOMPurify
+      before rendering, or avoid raw HTML injection entirely.
+    metadata:
+      category: security
+      owasp: A03:2021 - Injection
+      cwe: "CWE-79: Improper Neutralization of Input During Web Page Generation (XSS)"
+    pattern: '<$EL dangerouslySetInnerHTML={{__html: $X}} ... />'
+
+  # VULN-008 — CSRF: state-changing fetch with no anti-CSRF token
+  - id: vulnbank-csrf-missing-token
+    languages: [js, ts]
+    severity: ERROR
+    message: >-
+      State-changing POST request sent with credentials but no anti-CSRF
+      token header. A malicious third-party page can trigger this same
+      request using the victim's cookies. Add a CSRF token header (e.g.
+      X-CSRF-Token) validated server-side, or use SameSite=strict cookies.
+    metadata:
+      category: security
+      owasp: A01:2021 - Broken Access Control
+      cwe: "CWE-352: Cross-Site Request Forgery (CSRF)"
+    patterns:
+      - pattern: 'fetch($URL, {..., method: "POST", ...})'
+      - pattern-not: 'fetch($URL, {..., headers: {..., "X-CSRF-Token": ..., ...}, ...})'
+
+  # VULN-012 — sensitive data logged to console
+  - id: vulnbank-sensitive-data-console-log
+    languages: [js, ts]
+    severity: WARNING
+    message: >-
+      Sensitive data (token/API key/secret) written to console.log. Browser
+      console output can end up in crash reports, browser extensions, or
+      screen-share sessions. Strip sensitive fields before logging.
+    metadata:
+      category: security
+      owasp: A09:2021 - Security Logging and Monitoring Failures
+      cwe: "CWE-532: Insertion of Sensitive Information into Log File"
+    pattern-regex: 'console\.(log|debug|info)\([^)]*\b(token|api_key|apikey|secret|password|ssn)\b'
+
+  # VULN-013 — broken access control: authorization decided client-side only
+  - id: vulnbank-client-side-authorization
+    languages: [js, ts]
+    severity: ERROR
+    message: >-
+      Authorization decision based only on a client-side value read from
+      localStorage. Any user can open devtools and set this value directly,
+      bypassing the check entirely. Authorization must be enforced
+      server-side on every request.
+    metadata:
+      category: security
+      owasp: A01:2021 - Broken Access Control
+      cwe: "CWE-602: Client-Side Enforcement of Server-Side Security"
+    pattern: localStorage.getItem($KEY) === $VAL
+
+  # VULN-014 — IDOR: direct object lookup by unvalidated client-supplied id
+  - id: vulnbank-idor-direct-object-lookup
+    languages: [js, ts]
+    severity: ERROR
+    message: >-
+      Object looked up directly by a client-supplied ID with no ownership
+      or authorization check. Any authenticated user can enumerate IDs and
+      read other users' data (Insecure Direct Object Reference).
+    metadata:
+      category: security
+      owasp: A01:2021 - Broken Access Control
+      cwe: "CWE-639: Authorization Bypass Through User-Controlled Key"
+    pattern: $ARR.find($EL => $EL.id === parseInt($INPUT))
+
+  # VULN-015 — SQL injection via string interpolation
+  - id: vulnbank-sql-injection-string-building
+    languages: [js, ts]
+    severity: ERROR
+    message: >-
+      SQL query built via string interpolation with unvalidated user input.
+      An attacker can break out of the intended query (e.g. `' OR '1'='1`)
+      to read or modify data they shouldn't have access to. Use
+      parameterized queries / a query builder instead of string concatenation.
+    metadata:
+      category: security
+      owasp: A03:2021 - Injection
+      cwe: "CWE-89: SQL Injection"
+    pattern-regex: '(?i)(SELECT|INSERT|UPDATE|DELETE)\b[^`"\x27]*\bWHERE\b[^`]*\$\{'

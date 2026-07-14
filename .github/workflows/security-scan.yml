@@ -1,0 +1,126 @@
+name: Security Scan
+
+# Phase 1 scope: this workflow's job is SCANNING ONLY.
+# Scoring + LLM fix suggestions + GitHub Issue creation happen on your local
+# machine (python triage-agent/agent.py), because that's where Ollama lives.
+# Phase 2 will move the whole pipeline in here once we add a cloud LLM step.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {}   # lets you trigger a scan manually from the Actions tab
+
+jobs:
+  security-scan:
+    name: Run Security Scanners
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # Trivy needs package-lock.json to resolve exact installed versions
+      - name: Install dependencies
+        working-directory: vulbank-app
+        run: npm install
+
+      # ---- SEMGREP (SAST) ----
+      # Runs the community rulesets AND the custom VulnBank rules together.
+      # Community rules alone often miss app-specific patterns — pairing
+      # them with hand-written rules is what makes detection reliable.
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Semgrep
+        run: pip install semgrep
+
+      - name: Run Semgrep
+        working-directory: vulbank-app
+        run: |
+          semgrep scan \
+            --config=p/javascript \
+            --config=p/react \
+            --config=p/secrets \
+            --config=p/owasp-top-ten \
+            --config=../.semgrep/vulnbank-rules.yml \
+            --json \
+            --output=../triage-agent/semgrep-results.json \
+            --metrics=off \
+            ./src || true
+        # || true: don't fail the CI job just because vulnerabilities were found.
+        # The whole point of this pipeline is to triage them, not block the build.
+
+      # ---- TRIVY (SCA) ----
+      # Checks package.json / package-lock.json against known CVE databases.
+      - name: Run Trivy (dependency CVE scan)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: vulbank-app
+          format: json
+          output: triage-agent/trivy-results.json
+          severity: CRITICAL,HIGH,MEDIUM
+        continue-on-error: true
+
+      - name: Print scan summary
+        run: |
+          echo "===== SEMGREP RESULTS ====="
+          if [ -f triage-agent/semgrep-results.json ]; then
+            python3 -c "
+          import json
+          data = json.load(open('triage-agent/semgrep-results.json'))
+          findings = data.get('results', [])
+          print(f'Semgrep found {len(findings)} issues')
+          for f in findings[:10]:
+              print(f\"  [{f['extra']['severity']}] {f['check_id']} in {f['path']}:{f['start']['line']}\")
+          "
+          else
+            echo "No semgrep results file found"
+          fi
+
+          echo ""
+          echo "===== TRIVY RESULTS ====="
+          if [ -f triage-agent/trivy-results.json ]; then
+            python3 -c "
+          import json
+          data = json.load(open('triage-agent/trivy-results.json'))
+          vulns = []
+          for result in data.get('Results', []):
+              vulns.extend(result.get('Vulnerabilities') or [])
+          print(f'Trivy found {len(vulns)} vulnerabilities')
+          for v in vulns[:10]:
+              print(f\"  [{v.get('Severity')}] {v.get('VulnerabilityID')} in {v.get('PkgName')}@{v.get('InstalledVersion')}\")
+          "
+          else
+            echo "No trivy results file found"
+          fi
+
+      - name: Upload scan results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-scan-results
+          path: |
+            triage-agent/semgrep-results.json
+            triage-agent/trivy-results.json
+          retention-days: 30
+
+      - name: Next steps
+        run: |
+          echo "Scan complete. Results uploaded as the 'security-scan-results' artifact."
+          echo ""
+          echo "To triage these findings, download the artifact and run locally:"
+          echo "  cd triage-agent"
+          echo "  python agent.py --dry-run     # preview, no GitHub Issues created"
+          echo "  python agent.py               # scores + Gemma fix suggestions + creates Issues"
+          echo ""
+          echo "This requires Ollama running locally with 'ollama pull gemma3:4b'."
