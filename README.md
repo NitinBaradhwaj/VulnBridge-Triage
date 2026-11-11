@@ -1,5 +1,9 @@
 # DevSecOps Agentic Triage Pipeline
 
+### Problem Statement: 
+- Security and testing teams are good at finding vulnerabilities, but what they hand developers is a raw, overwhelming list — dozens of findings, all marked “high,” with cryptic descriptions and no fix guidance. Developers don’t know what to tackle first or how, so they stall, and the genuinely dangerous bugs sit unfixed for weeks. The gap isn’t finding vulnerabilities, it’s helping developers actually act on them.
+
+
 Scanner output → risk-scored, AI-enriched, deduplicated GitHub Issues. No manual triage.
 
 See [`PROJECT_PROMPT.md`](./PROJECT_PROMPT.md) for the full vision and roadmap.
